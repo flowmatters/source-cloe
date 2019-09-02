@@ -34,13 +34,13 @@ namespace Source.CLOE
         [Parameter, Description("Alpha: Mass conversion coefficient")]
         public double Alpha { get; set; }
 
-        [Input, Description("InputRate (R)"), CalculationUnits(CommonUnits.kilograms)]
+        [Input, Description("InputRate (R)"), CalculationUnits(CommonUnits.kilograms), ConstituentLinkage]
         public double InputRate { get; set; }
 
         [Input, Description("Efficiency term(M)")]
         public double E { get; set; }
 
-        [Input, DefaultValue(1.0), ConstituentLinkage]
+        [Input, DefaultValue(1.0)]
         public double TimingFactor { get; set; }
 
         #endregion
