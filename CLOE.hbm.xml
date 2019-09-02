@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" assembly="Source.CLOE" auto-import="false">
+  <subclass abstract="false"
+            name="Source.CLOE.InstreamCLOEModel"
+            lazy="false"
+            discriminator-value="InstreamCLOEModel"
+            extends="RiverSystem.SourceSinkModel, RiverSystem">
+    <join table="InstreamCLOEModel" fetch="select">
+      <key column="SubclassKey" />
+      <property name="Dlink" column="Dlink" access="property" />
+      <property name="Olink" column="Olink" access="property" />
+      <property name="B51" column="B51" access="property" />
+      <property name="Alpha" column="Alpha" access="property" />
+      <property name="O" column="O" access="property" />
+    </join>
+  </subclass>
+  <subclass abstract="true"
+            name="Source.CLOE.AbstractCLOEFUModel"
+            lazy="false"
+            discriminator-value="AbstractCLOEFUModel"
+            extends="RiverSystem.Catchments.Models.ContaminantGenerationModels.StandardConstituentGenerationModel, RiverSystem">
+    <join table="AbstractCLOEFUModel" fetch="select">
+      <key column="SubclassKey" />
+      <property name="O" column="O" access="property" />
+      <property name="Alpha" column="Alpha" access="property" />
+      <property name="B1" column="B1" access="property" />
+      <property name="B2" column="B2" access="property" />
+      <property name="B3" column="B3" access="property" />
+      <property name="B4" column="B4" access="property" />
+      <property name="B5" column="B5" access="property" />
+      <property name="B6" column="B6" access="property" />
+      <property name="B7" column="B7" access="property" />
+      <property name="B11" column="B11" access="property" />
+      <property name="B12" column="B12" access="property" />
+      <property name="B21" column="B21" access="property" />
+      <property name="B31" column="B31" access="property" />
+      <property name="B41" column="B41" access="property" />
+      <property name="B42" column="B42" access="property" />
+      <property name="DgwSurf" column="DgwSurf" access="property" />
+      <property name="OgwSurf" column="OgwSurf" access="property" />
+      <property name="DgwOut" column="DgwOut" access="property" />
+      <property name="OgwOut" column="OgwOut" access="property" />
+      <property name="Dgw" column="Dgw" access="property" />
+      <property name="Ogw" column="Ogw" access="property" />
+      <property name="Dsurf" column="Dsurf" access="property" />
+      <property name="Osurf" column="Osurf" access="property" />
+      <property name="Dout" column="Dout" access="property" />
+      <property name="Oout" column="Oout" access="property" />
+    </join>
+    <subclass name="Source.CLOE.ArealCLOEModel" lazy="false" discriminator-value="ArealCLOEModel"/>
+    <subclass name="Source.CLOE.NonArealCLOEModel" lazy="false" discriminator-value="NonArealCLOEModel"/>
+  </subclass>
+</hibernate-mapping>
