@@ -235,15 +235,15 @@ namespace Source.CLOE
             LossToGroundwater = SoilStore*GroundwaterLossRate;
 
             // Constraint losses based on residual soil store
-            LossOut = Math.Min(SoilStore, LossOut);
-            SoilStore -= LossOut;
-
             quickflowConstituent = Math.Min(SoilStore, quickflowConstituent);
             SoilStore -= quickflowConstituent;
 
             LossToGroundwater = Math.Min(SoilStore, LossToGroundwater);
             SoilStore -= LossToGroundwater;
             GroundwaterStore += LossToGroundwater;
+
+            LossOut = Math.Min(SoilStore, LossOut);
+            SoilStore -= LossOut;
 
             LossOut /= theTimeStepInSeconds; // => kg/s
             quickflowConstituent /= theTimeStepInSeconds;
