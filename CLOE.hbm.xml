@@ -33,6 +33,7 @@
       <property name="B11" column="B11" access="property" />
       <property name="B12" column="B12" access="property" />
       <property name="B21" column="B21" access="property" />
+      <property name="B22" column="B22" access="property" />
       <property name="B31" column="B31" access="property" />
       <property name="B41" column="B41" access="property" />
       <property name="B42" column="B42" access="property" />
