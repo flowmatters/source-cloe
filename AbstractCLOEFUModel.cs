@@ -101,6 +101,9 @@ namespace Source.CLOE
         [Parameter, Description("B21: Drainage coefficient")]
         public double B21 { get; set; }
 
+        [Parameter, Description("B22: Soil Leach coefficient")]
+        public double B22 { get; set; }
+
         [Parameter, Description("B31: Groundwater discharge coefficient")]
         public double B31 { get; set; }
 
@@ -156,6 +159,9 @@ namespace Source.CLOE
 
         [Input]
         public double Drainage { get; set; }
+
+        [Input]
+        public double SoilLeach { get; set; }
 
         [Input]
         public double Groundcover { get; set; }
