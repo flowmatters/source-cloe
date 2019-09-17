@@ -261,7 +261,7 @@ namespace Source.CLOE
             get
             {
                 var exponent = (-B11*Temp) + (-B12*SoilMoisture) + (-B13*PlantUptake);
-                return Dout + Oout*Math.Exp(exponent);
+                return weight(Dout,Oout,Math.Exp(exponent));
             }
         }
 
@@ -276,16 +276,21 @@ namespace Source.CLOE
                                (-B5*Mr*Riparian) +
                                (-B6*Mw*Wetlands) +
                                (-B7*Ms*Soil);
-                return Dsurf + Osurf*Math.Exp(exponent);
+                return weight(Dsurf,Osurf,Math.Exp(exponent));
             }
+        }
+
+        private double weight(double d, double o, double e)
+        {
+            return (1 - o)*d + o * e;
         }
 
         public double GroundwaterLossRate
         {
             get
             {
-                var exponent = -B21*Drainage;
-                return Dgw + Ogw*Math.Exp(exponent);
+                var exponent = -B21*Drainage - B22*SoilLeach;
+                return weight(Dgw,Ogw,Math.Exp(exponent));
             }
         }
 
@@ -294,7 +299,7 @@ namespace Source.CLOE
             get
             {
                 var exponent = (-B41*DOC) + (-B42*Geology);
-                return DgwOut + OgwOut*Math.Exp(exponent);
+                return weight(DgwOut,OgwOut,Math.Exp(exponent));
             }
         }
 
@@ -303,7 +308,7 @@ namespace Source.CLOE
             get
             {
                 var exponent = -B31*GWDischarge;
-                return DgwSurf + OgwSurf*Math.Exp(exponent);
+                return weight(DgwSurf,OgwSurf,Math.Exp(exponent));
             }
         }
 
