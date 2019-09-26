@@ -48,6 +48,26 @@
       <property name="Dout" column="Dout" access="property" />
       <property name="Oout" column="Oout" access="property" />
       <property name="T" column="T" access="property" />
+      <property name="InputRate" column="InputRate" access="property" />
+      <property name="E" column="E" access="property" />
+      <property name="TimingFactor" column="TimingFactor" access="property" />
+      <property name="M" column="M" access="property" />
+      <property name="Mg" column="Mg" access="property" />
+      <property name="Ms" column="Ms" access="property" />
+      <property name="Mw" column="Mw" access="property" />
+      <property name="Mr" column="Mr" access="property" />
+      <property name="Geology" column="Geology" access="property" />
+      <property name="DOC" column="DOC" access="property" />
+      <property name="Drainage" column="Drainage" access="property" />
+      <property name="SoilLeach" column="SoilLeach" access="property" />
+      <property name="Groundcover" column="Groundcover" access="property" />
+      <property name="Distance" column="Distance" access="property" />
+      <property name="Wetlands" column="Wetlands" access="property" />
+      <property name="PlantUptake" column="PlantUptake" access="property" />
+      <property name="SoilMoisture" column="SoilMoisture" access="property" />
+      <property name="Riparian" column="Riparian" access="property" />
+      <property name="Soil" column="Soil" access="property" />
+      <property name="GWDischarge" column="GWDischarge" access="property" />
     </join>
     <subclass name="Source.CLOE.ArealCLOEModel" lazy="false" discriminator-value="ArealCLOEModel"/>
     <subclass name="Source.CLOE.NonArealCLOEModel" lazy="false" discriminator-value="NonArealCLOEModel"/>
