@@ -116,6 +116,8 @@ namespace Source.CLOE
         #endregion
 
         #region Loss delivery controls
+        [Input, Description("T: Store loss threshold"),Minimum(0.0),Maximum(1.0),DefaultValue(1.0)]
+        public double T { get; set; }
 
         [Parameter, Description("Delivery Ratio - Groundwater to Stream")]
         public double DgwSurf { get; set; }
@@ -235,20 +237,29 @@ namespace Source.CLOE
 
         private void CalculateSurfaceFluxes(double theTimeStepInSeconds)
         {
+            var lossThreshold = T * SoilStore;
+
             // Calculate all based on current SoilStore
             LossOut = SoilStore*OutsideLossRate;
             quickflowConstituent = SoilStore*SurfaceLossRate; // SurfaceLoss
             LossToGroundwater = SoilStore*GroundwaterLossRate;
 
+            var lossDemand = LossOut + quickflowConstituent + LossToGroundwater;
+            var lossScale = 1.0;
+            if (lossDemand > lossThreshold)
+            {
+                lossScale = lossThreshold/lossDemand;
+            }
+
             // Constraint losses based on residual soil store
-            quickflowConstituent = Math.Min(SoilStore, quickflowConstituent);
+            quickflowConstituent *= lossScale;
             SoilStore -= quickflowConstituent;
 
-            LossToGroundwater = Math.Min(SoilStore, LossToGroundwater);
+            LossToGroundwater *= lossScale;
             SoilStore -= LossToGroundwater;
             GroundwaterStore += LossToGroundwater;
 
-            LossOut = Math.Min(SoilStore, LossOut);
+            LossOut *= lossScale;
             SoilStore -= LossOut;
 
             LossOut /= theTimeStepInSeconds; // => kg/s

@@ -47,6 +47,7 @@
       <property name="Osurf" column="Osurf" access="property" />
       <property name="Dout" column="Dout" access="property" />
       <property name="Oout" column="Oout" access="property" />
+      <property name="T" column="T" access="property" />
     </join>
     <subclass name="Source.CLOE.ArealCLOEModel" lazy="false" discriminator-value="ArealCLOEModel"/>
     <subclass name="Source.CLOE.NonArealCLOEModel" lazy="false" discriminator-value="NonArealCLOEModel"/>
