@@ -260,6 +260,7 @@ namespace Source.CLOE
             GroundwaterStore += LossToGroundwater;
 
             LossOut *= lossScale;
+            LossOut = Math.Min(LossOut, SoilStore); // Round here if necessary
             SoilStore -= LossOut;
 
             LossOut /= theTimeStepInSeconds; // => kg/s
