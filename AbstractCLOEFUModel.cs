@@ -272,17 +272,28 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = (-B11*Temp) + (-B12*SoilMoisture) + (-B13*PlantUptake);
+                var exponent = (-B11*safeInv(Temp)) + (-B12*safeInv(SoilMoisture)) + (-B13*safeInv(PlantUptake));
                 return weight(Dout,Oout,Math.Exp(exponent));
             }
+        }
+
+        private double safeInv(double x)
+        {
+            const double TINY = 1e-8;
+            if (Math.Abs(x) < TINY)
+            {
+                var sign = Math.Sign(x);
+                x = ((sign==0)?1:sign)*TINY;
+            }
+            return 1/x;
         }
 
         public double SurfaceLossRate
         {
             get
             {
-                var exponent = (-B1*quickflow) +
-                               (-B2*slowflow) +
+                var exponent = (-B1*safeInv(quickflow)) +
+                               (-B2*safeInv(slowflow)) +
                                (-B4*Mg*Groundcover) +
                                (-B3*Distance) +
                                (-B5*Mr*Riparian) +
@@ -301,7 +312,7 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = -B21*Drainage - B22*SoilLeach;
+                var exponent = -B21*safeInv(Drainage) - B22*SoilLeach;
                 return weight(Dgw,Ogw,Math.Exp(exponent));
             }
         }
@@ -310,7 +321,7 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = (-B41*DOC) + (-B42*Geology);
+                var exponent = (-B41*safeInv(DOC)) + (-B42*Geology);
                 return weight(DgwOut,OgwOut,Math.Exp(exponent));
             }
         }
@@ -319,7 +330,7 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = -B31*GWDischarge;
+                var exponent = -B31*safeInv(GWDischarge);
                 return weight(DgwSurf,OgwSurf,Math.Exp(exponent));
             }
         }
