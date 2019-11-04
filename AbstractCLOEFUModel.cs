@@ -209,8 +209,9 @@ namespace Source.CLOE
         public override void runTimeStep(DateTime now, double theTimeStepInSeconds)
         {
             // TODO check ordering and constraining with Baihua
+            GWDischarge = slowflow;
 
-            SoilStore += GenerateRateKg_S*theTimeStepInSeconds;
+            SoilStore += GenerateRateKg_timestep;//*theTimeStepInSeconds;
 
             CalculateSurfaceFluxes(theTimeStepInSeconds);
 
@@ -335,7 +336,7 @@ namespace Source.CLOE
             }
         }
 
-        public virtual double GenerateRateKg_S
+        public virtual double GenerateRateKg_timestep
         {
             get { return O*Alpha*InputRate*M*E*TimingFactor; }
         }

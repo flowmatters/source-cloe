@@ -2,9 +2,9 @@
 {
     public class ArealCLOEModel : AbstractCLOEFUModel
     {
-        public override double GenerateRateKg_S
+        public override double GenerateRateKg_timestep
         {
-            get { return base.GenerateRateKg_S * AreaHa; }
+            get { return base.GenerateRateKg_timestep * AreaHa; }
         }
 
         public double AreaHa
