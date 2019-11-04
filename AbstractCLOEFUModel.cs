@@ -227,7 +227,7 @@ namespace Source.CLOE
             LossOutGroundwater = Math.Min(GroundwaterStore, LossOutGroundwater);
             GroundwaterStore -= LossOutGroundwater;
 
-            slowflowConstituent = Math.Min(slowflowConstituent, LossOutGroundwater);
+            slowflowConstituent = Math.Min(GroundwaterStore,slowflowConstituent);
             GroundwaterStore -= slowflowConstituent;
 
             // Convert fluxes to rates
