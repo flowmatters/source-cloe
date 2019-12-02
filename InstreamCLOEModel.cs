@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RiverSystem;
+using TIME.Core;
 using TIME.Core.Metadata;
 
 namespace Source.CLOE
@@ -14,6 +15,9 @@ namespace Source.CLOE
         {
             
         }
+
+        [Parameter, CalculationUnits(CommonUnits.kilograms), Minimum(0.0)]
+        public double InitialLinkStore{ get; set; }
 
         [State]
         public double LinkStore { get; set; }
@@ -87,7 +91,7 @@ namespace Source.CLOE
         public override void reset()
         {
             base.reset();
-            LinkStore = 0.0;
+            LinkStore = InitialLinkStore;
         }
     }
 }
