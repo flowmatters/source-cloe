@@ -16,6 +16,16 @@ namespace Source.CLOE
 {
     public abstract class AbstractCLOEFUModel : StandardConstituentGenerationModel
     {
+        #region Initial state parameters
+
+        [Parameter, CalculationUnits(CommonUnits.kilograms),Minimum(0.0)]
+        public double InitialSoilStore { get; set; }
+
+        [Parameter, CalculationUnits(CommonUnits.kilograms), Minimum(0.0)]
+        public double InitialGroundwaterStore { get; set; }
+
+        #endregion
+
         #region States
 
         [State, CalculationUnits(CommonUnits.kilograms)]
@@ -345,8 +355,8 @@ namespace Source.CLOE
         public override void reset()
         {
             base.reset();
-            SoilStore = 0.0;
-            GroundwaterStore = 0.0;
+            SoilStore = InitialSoilStore;
+            GroundwaterStore = InitialGroundwaterStore;
         }
     }
 
