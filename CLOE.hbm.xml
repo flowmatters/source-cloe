@@ -7,6 +7,7 @@
             extends="RiverSystem.SourceSinkModel, RiverSystem">
     <join table="InstreamCLOEModel" fetch="select">
       <key column="SubclassKey" />
+      <property name="InitialLinkStore" column="InitialLinkStore" access="property" />
       <property name="Dlink" column="Dlink" access="property" />
       <property name="Olink" column="Olink" access="property" />
       <property name="B51" column="B51" access="property" />
@@ -21,6 +22,8 @@
             extends="RiverSystem.Catchments.Models.ContaminantGenerationModels.StandardConstituentGenerationModel, RiverSystem">
     <join table="AbstractCLOEFUModel" fetch="select">
       <key column="SubclassKey" />
+      <property name="InitialSoilStore" column="InitialSoilStore" access="property" />
+      <property name="InitialGroundwaterStore" column="InitialGroundwaterStore" access="property" />
       <property name="O" column="O" access="property" />
       <property name="Alpha" column="Alpha" access="property" />
       <property name="B1" column="B1" access="property" />
