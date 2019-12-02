@@ -54,6 +54,7 @@ namespace Source.CLOE
             LinkStore += BankErosion;
 
             ProcessedLoad = LinkStore*ConstituentOutFraction;
+            LinkStore = Math.Max(0.0, LinkStore - ProcessedLoad);
         }
 
         public double ConstituentOutFraction
