@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,6 +32,9 @@ namespace Source.CLOE
         [Parameter]
         public double B51 { get; set; }
 
+        [Parameter]
+        public double B52 { get; set; }
+
         #region Streambank Erosion terms
         [Input]
         public double Erodibility { get; set; }
@@ -43,6 +47,9 @@ namespace Source.CLOE
 
         [Parameter]
         public double Alpha { get; set; }
+
+        [Parameter, DefaultValue(1.4)]
+        public double B { get; set; }
 
         [Parameter]
         public double O { get; set; }
@@ -61,8 +68,8 @@ namespace Source.CLOE
         {
             get
             {
-                var exp = -B51 * Link.TravelTime;
-                return Dlink + Olink*Math.Exp(exp);
+                var exp = -B51*CloeUtils.safeInv(DownstreamFlowVolume) + B52 * Link.TravelTime;
+                return CloeUtils.weight(Dlink,Olink,Math.Exp(exp));
             }
         }
 
@@ -70,7 +77,8 @@ namespace Source.CLOE
         {
             get
             {
-                return O * Alpha * DownstreamFlowVolume * Mgt * Veg * Erodibility * Link.Length;
+                return Alpha * Erodibility * Veg * Math.Pow(DownstreamFlowVolume, B) * Link.Length;
+                //return O * Alpha * Math.Pow(DownstreamFlowVolume,B) * Mgt * Veg * Erodibility * Link.Length);
             }
         }
 
