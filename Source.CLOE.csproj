@@ -59,6 +59,7 @@
   <ItemGroup>
     <Compile Include="AbstractCLOEFUModel.cs" />
     <Compile Include="ArealCLOEModel.cs" />
+    <Compile Include="CloeUtils.cs" />
     <Compile Include="InstreamCLOEModel.cs" />
     <Compile Include="NonArealCLOEModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

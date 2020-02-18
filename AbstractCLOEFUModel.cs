@@ -283,48 +283,32 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = (-B11*safeInv(Temp)) + (-B12*safeInv(SoilMoisture)) + (-B13*safeInv(PlantUptake));
-                return weight(Dout,Oout,Math.Exp(exponent));
+                var exponent = (-B11*CloeUtils.safeInv(Temp)) + (-B12*CloeUtils.safeInv(SoilMoisture)) + (-B13*CloeUtils.safeInv(PlantUptake));
+                return CloeUtils.weight(Dout,Oout,Math.Exp(exponent));
             }
-        }
-
-        private double safeInv(double x)
-        {
-            const double TINY = 1e-8;
-            if (Math.Abs(x) < TINY)
-            {
-                var sign = Math.Sign(x);
-                x = ((sign==0)?1:sign)*TINY;
-            }
-            return 1/x;
         }
 
         public double SurfaceLossRate
         {
             get
             {
-                var exponent = (-B1*safeInv(quickflow)) +
-                               (-B2*safeInv(slowflow)) +
+                var exponent = (-B1*CloeUtils.safeInv(quickflow)) +
+                               (-B2*CloeUtils.safeInv(slowflow)) +
                                (-B4*Mg*Groundcover) +
                                (-B3*Distance) +
                                (-B5*Mr*Riparian) +
                                (-B6*Mw*Wetlands) +
                                (-B7*Ms*Soil);
-                return weight(Dsurf,Osurf,Math.Exp(exponent));
+                return CloeUtils.weight(Dsurf,Osurf,Math.Exp(exponent));
             }
-        }
-
-        private double weight(double d, double o, double e)
-        {
-            return (1 - o)*d + o * e;
         }
 
         public double GroundwaterLossRate
         {
             get
             {
-                var exponent = -B21*safeInv(Drainage) - B22*SoilLeach;
-                return weight(Dgw,Ogw,Math.Exp(exponent));
+                var exponent = -B21*CloeUtils.safeInv(Drainage) - B22*SoilLeach;
+                return CloeUtils.weight(Dgw,Ogw,Math.Exp(exponent));
             }
         }
 
@@ -332,8 +316,8 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = (-B41*safeInv(DOC)) + (-B42*Geology);
-                return weight(DgwOut,OgwOut,Math.Exp(exponent));
+                var exponent = (-B41*CloeUtils.safeInv(DOC)) + (-B42*Geology);
+                return CloeUtils.weight(DgwOut,OgwOut,Math.Exp(exponent));
             }
         }
 
@@ -341,8 +325,8 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = -B31*safeInv(GWDischarge);
-                return weight(DgwSurf,OgwSurf,Math.Exp(exponent));
+                var exponent = -B31*CloeUtils.safeInv(GWDischarge);
+                return CloeUtils.weight(DgwSurf,OgwSurf,Math.Exp(exponent));
             }
         }
 
