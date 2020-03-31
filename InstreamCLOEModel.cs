@@ -42,9 +42,6 @@ namespace Source.CLOE
         [Input]
         public double Veg { get; set; }
 
-        [Input]
-        public double Mgt { get; set; }
-
         [Parameter]
         public double Alpha { get; set; }
 
@@ -53,6 +50,7 @@ namespace Source.CLOE
 
         [Parameter]
         public double O { get; set; }
+
         #endregion
 
         public override void runTimeStep(DateTime now, double theTimeStepInSeconds)
@@ -77,8 +75,7 @@ namespace Source.CLOE
         {
             get
             {
-                return Alpha * Erodibility * Veg * Math.Pow(DownstreamFlowVolume, B) * Link.Length;
-                //return O * Alpha * Math.Pow(DownstreamFlowVolume,B) * Mgt * Veg * Erodibility * Link.Length);
+                return O * Alpha * Erodibility * Veg * Math.Pow(DownstreamFlowVolume, B) * Link.Length;
             }
         }
 
@@ -89,11 +86,12 @@ namespace Source.CLOE
                 Dlink = Dlink,
                 Olink = Olink,
                 B51 = B51,
+                B52 = B52,
                 Erodibility = Erodibility,
                 Veg = Veg,
-                Mgt = Mgt,
                 Alpha = Alpha,
-                O = O
+                O = O,
+                B = B
             };
         }
 

@@ -11,7 +11,11 @@
       <property name="Dlink" column="Dlink" access="property" />
       <property name="Olink" column="Olink" access="property" />
       <property name="B51" column="B51" access="property" />
+      <property name="B52" column="B52" access="property" />
       <property name="Alpha" column="Alpha" access="property" />
+      <property name="Erodibility" column="Erodibility" access="property" />
+      <property name="Veg" column="Veg" access="property" />
+      <property name="B" column="B" access="property" />
       <property name="O" column="O" access="property" />
     </join>
   </subclass>
