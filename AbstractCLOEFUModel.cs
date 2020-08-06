@@ -62,18 +62,26 @@ namespace Source.CLOE
         [Input, Description("Management modifier - Generation (M)")]
         public double M { get; set; }
 
-        [Input, Description("Management modifier - Groundcover (Mg)")]
-        public double Mg { get; set; }
+        [Input, Description("Management modifier - Groundcover (M3)")]
+        public double M3 { get; set; }
 
-        [Input, Description("Management modifier - Soil (Ms)")]
-        public double Ms { get; set; }
+        [Input, Description("Management modifier - Riparian (M4)")]
+        public double M4 { get; set; }
 
-        [Input, Description("Management modifier - Wetlands (Mw)")]
-        public double Mw { get; set; }
+        [Input, Description("Management modifier - Wetlands (M5)")]
+        public double M5 { get; set; }
 
-        [Input, Description("Management modifier - Riparian (Mr)")]
-        public double Mr { get; set; }
+        [Input, Description("Management modifier - Soil (M6)")]
+        public double M6 { get; set; }
 
+        [Input, Description("Management modifier - Plant uptake (M13)")]
+        public double M13 { get; set; }
+
+        [Input, Description("Management modifier - Soil PRI (M22)")]
+        public double M22 { get; set; }
+
+        [Input, Description("Management modifier - DOC (M41)")]
+        public double M41 { get; set; }
         #endregion
 
         #region Betas
@@ -81,23 +89,20 @@ namespace Source.CLOE
         [Parameter, Description("B1: Quickflow coefficient")]
         public double B1 { get; set; }
 
-        [Parameter, Description("B2: Slowflow coefficient")]
+        [Parameter, Description("B2: Distance coefficient")]
         public double B2 { get; set; }
 
-        [Parameter, Description("B3: Distance coefficient")]
+        [Parameter, Description("B3: Groundcover coefficient")]
         public double B3 { get; set; }
 
-        [Parameter, Description("B4: Groundcover coefficient")]
+        [Parameter, Description("B4: Riparian coefficient")]
         public double B4 { get; set; }
 
-        [Parameter, Description("B5: Riparian coefficient")]
+        [Parameter, Description("B5: Wetlands coefficient")]
         public double B5 { get; set; }
 
-        [Parameter, Description("B6: Wetlands coefficient")]
+        [Parameter, Description("B6: Soil coefficient")]
         public double B6 { get; set; }
-
-        [Parameter, Description("B7: Soil coefficient")]
-        public double B7 { get; set; }
 
         [Parameter, Description("B11: Temperature coefficient")]
         public double B11 { get; set; }
@@ -283,7 +288,7 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = (-B11*CloeUtils.safeInv(Temp)) + (-B12*CloeUtils.safeInv(SoilMoisture)) + (-B13*CloeUtils.safeInv(PlantUptake));
+                var exponent = (-B11*CloeUtils.safeInv(Temp)) + (-B12*CloeUtils.safeInv(SoilMoisture)) + (-B13*M13*CloeUtils.safeInv(PlantUptake));
                 return CloeUtils.weight(Dout,Oout,Math.Exp(exponent));
             }
         }
@@ -293,12 +298,12 @@ namespace Source.CLOE
             get
             {
                 var exponent = (-B1*CloeUtils.safeInv(quickflow)) +
-                               (-B2*CloeUtils.safeInv(slowflow)) +
-                               (-B4*Mg*Groundcover) +
-                               (-B3*Distance) +
-                               (-B5*Mr*Riparian) +
-                               (-B6*Mw*Wetlands) +
-                               (-B7*Ms*Soil);
+//                               (-B2*CloeUtils.safeInv(slowflow)) +
+                               (-B2 * Distance) +
+                               (-B3*M3*Groundcover) +
+                               (-B4*M4*Riparian) +
+                               (-B5*M5*Wetlands) +
+                               (-B6*M6*Soil);
                 return CloeUtils.weight(Dsurf,Osurf,Math.Exp(exponent));
             }
         }
@@ -307,7 +312,7 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = -B21*CloeUtils.safeInv(Drainage) - B22*SoilLeach;
+                var exponent = -B21*CloeUtils.safeInv(Drainage) - B22*M22*SoilLeach;
                 return CloeUtils.weight(Dgw,Ogw,Math.Exp(exponent));
             }
         }
@@ -316,7 +321,7 @@ namespace Source.CLOE
         {
             get
             {
-                var exponent = (-B41*CloeUtils.safeInv(DOC)) + (-B42*Geology);
+                var exponent = (-B41*M41*CloeUtils.safeInv(DOC)) + (-B42*Geology);
                 return CloeUtils.weight(DgwOut,OgwOut,Math.Exp(exponent));
             }
         }

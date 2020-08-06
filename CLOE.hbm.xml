@@ -36,7 +36,6 @@
       <property name="B4" column="B4" access="property" />
       <property name="B5" column="B5" access="property" />
       <property name="B6" column="B6" access="property" />
-      <property name="B7" column="B7" access="property" />
       <property name="B11" column="B11" access="property" />
       <property name="B12" column="B12" access="property" />
       <property name="B21" column="B21" access="property" />
@@ -59,10 +58,13 @@
       <property name="E" column="E" access="property" />
       <property name="TimingFactor" column="TimingFactor" access="property" />
       <property name="M" column="M" access="property" />
-      <property name="Mg" column="Mg" access="property" />
-      <property name="Ms" column="Ms" access="property" />
-      <property name="Mw" column="Mw" access="property" />
-      <property name="Mr" column="Mr" access="property" />
+      <property name="M3" column="M3" access="property" />
+      <property name="M6" column="M6" access="property" />
+      <property name="M5" column="M5" access="property" />
+      <property name="M4" column="M4" access="property" />
+      <property name="M13" column="M13" access="property" />
+      <property name="M22" column="M22" access="property" />
+      <property name="M41" column="M41" access="property" />
       <property name="Geology" column="Geology" access="property" />
       <property name="DOC" column="DOC" access="property" />
       <property name="Drainage" column="Drainage" access="property" />
