@@ -63,15 +63,21 @@ class CloeSetup(object):
         self.temporal_inputs = [k for k,df in self.inputs.items() if 'Date' in df.columns]
         self.non_temporal_inputs = [k for k,df in self.inputs.items() if 'Date' not in df.columns]
 
+    def create_constituents(self):
+        for c in self.constituents:
+            self._v.model.add_constituent(c)
+
     def create_constituent_sources(self):
         for src in self.sources:
             self._v.model.add_constituent_source(src)
 
     def install_models(self):
         self._v.model.catchment.generation.set_models('Source.CLOE.ArealCLOEModel',
-                                                      sources=self.areal_sources)
+                                                      sources=self.areal_sources,
+                                                      constituents=self.constituents)
         self._v.model.catchment.generation.set_models('Source.CLOE.NonArealCLOEModel',
-                                                      sources=self.non_areal_sources)
+                                                      sources=self.non_areal_sources,
+                                                      constituents=self.constituents)
 
         self._v.model.link.constituents.set_models('Source.CLOE.InstreamCLOEModel',constituents=self.constituents)
     
@@ -110,23 +116,52 @@ class CloeSetup(object):
                 self.data_source_lookup[(input_fn,constituent)] = (data_source_name,'SC#${scix}:${fu}',pivot)
         # - do we need to scale by ha->m^2 -- NO. Model is in terms of per hectare...
 
-    def _apply_time_series(self,data_source,template,constituent_source,constituent,columns):
+        data_sources = self._v.data_sources()
+        self.existing_data_sources = {ds['Name']:[i['Name'] for i in ds['Items'][0]['Details']] for ds in data_sources}
+
+    def _apply_time_series(self,
+                           data_source,
+                           template,
+                           constituent_source,
+                           constituent,
+                           columns,
+                           fus=None,
+                           param='InputRate'):
+        skipped = 0
+        actioned = 0
+        if columns is None:
+            columns = self.existing_data_sources.get(data_source,None)
+        if columns is None:
+            print("WARNING. We don't know anything about the columns in {data_source}".format(data_source=data_source))
         for catchment in self.catchment_names:
-            for fu in self.fus:
+            for fu in (fus or self.fus):
                 scix = catchment.split('#')[1]
                 column = string.Template(template).substitute(fu=fu,sc=catchment,scix=scix,con=constituent)
                 # msg = '%s:%s:%s:%s ==> %s/%s'%(catchment,fu,constituent_source,constituent,data_source,column)
-                if not column in columns:
-    #                print('NO DATA: %s'%msg)
+                if column not in columns:
+                    print('NO DATA: %s/%s'%(data_source,column))
+                    skipped += 1
                     continue
-    #            print(msg)
-                self._v.model.catchment.generation.assign_time_series('InputRate',
-                                                                column,
-                                                                data_source,
-                                                                catchments=catchment,
-                                                                fus=fu,
-                                                                constituents=constituent,
-                                                                sources=constituent_source)
+                try:
+                    self._v.model.catchment.generation.assign_time_series(param,
+                                                                    column,
+                                                                    data_source,
+                                                                    catchments=catchment,
+                                                                    fus=fu,
+                                                                    constituents=constituent,
+                                                                    sources=constituent_source)
+                    actioned += 1
+                except:
+                    print('Error assigning time series')
+                    print('column=',column)
+                    print('datasource=',data_source)
+                    print('catchment=',catchment)
+                    print('fus=',fu)
+                    print('constituent=',constituent)
+                    print('source=',constituent_source)
+                    raise
+        msg ='Applying timeseries from {datasource} to {constituent}/{source}. Applied {applied} and skipped {skipped}.'
+        print(msg.format(datasource=data_source,constituent=constituent,source=constituent_source,applied=actioned,skipped=skipped))
     #         break
 
     def connect_time_series(self):
@@ -137,15 +172,37 @@ class CloeSetup(object):
         #     print(src)
             for con, custom_sources in exclusions.items():
                 if src in custom_sources.get('exclude',[]):
-                    print('SKIPPING %s:%s'%(src,con))
+                    print('SKIPPING %s:%s - exclude list'%(src,con))
                     continue
+                if not src in self.cfg['inputs']['source']:
+                    existing_sources = self.cfg['inputs'].get('existing',{})
+                    if src in existing_sources:
+                        for config in existing_sources[src]:
+                            constrain = config.get('constrain',{})
+                            self._apply_time_series(config['datasource'],
+                                                    config['column_format'],
+                                                    src,
+                                                    constrain.get('constituents',self.constituents),
+                                                    None,
+                                                    constrain.get('fus',None),
+                                                    param=config.get('param','InputRate'))
+                    else:
+                        print('SKIPPING %s:%s - no inputs'%(src,con))
+                    continue
+
                 fn = self.cfg['inputs']['source'][src]
                 print('\n%s:%s'%(src,con),end='')
                 data_source, column_template, df = self.data_source_lookup.get(fn,self.data_source_lookup.get((fn,con),(None,None,None)))
+                if data_source is None:
+                    data_source = fn
+                if column_template is None:
+                    column_template = self.cfg['inputs']['column_formats'][fn]
                 print(' - %s --> %s'%(data_source,column_template))
-                self._apply_time_series(data_source,column_template,src,con,df.columns)
+                self._apply_time_series(data_source,column_template,src,con,None if df is None else df.columns)
         # for each source, constituent, (skip some combinations)
         #   if we have a temporal input rate, assign it...
+        for ts in self.cfg['inputs'].get('global',[]):
+            self._v.model.catchment.generation.assign_time_series(ts['parameter'],ts['column'],ts['source'],**ts['constrain'])
 
     def apply_parameters(self):
         cfg = self.cfg['parameters']
