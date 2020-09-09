@@ -236,40 +236,76 @@ class CloeSetup(object):
     def setup_functions(self):
         cfg = self.cfg.get('runoff_functions',[])
         for fn in cfg:
-            orig_var = fn['runoff_variable']
+            self._setup_function(fn)
+    
+    def _setup_function(self,fn):
+        general_function = fn['template']
+        use_format = '{' in general_function
 
-            variables = self._v.model.catchment.runoff.create_modelled_variable(orig_var)
+        function_parameters = fn.get('model_variables',[fn.get('runoff_variable',None)])
+        if function_parameters[0] is None:
+            function_parameters = []
 
-            var_pattern = '$'+orig_var.replace(' ','_').replace('-','_')
+        if use_format:
+            variables = {}
+        else:
+            variables = []
+
+        for fp in function_parameters:
+            self._v.model.catchment.runoff.create_modelled_variable(fp)
+
+            var_pattern = '$'+fp.replace(' ','_').replace('-','_')
             all_variables = self._v.variables()
-            variables = [v for v in all_variables._select(['FullName']) if v.startswith(var_pattern)]
-            print(variables[:5])
+            vars_for_fp = [v for v in all_variables._select(['FullName']) if v.startswith(var_pattern)]
+            # print(fp,vars_for_fp[:5])
 
-            self._v.model.functions.set_modelled_variable_time_period('Current Time Step',variables)
+            if use_format:
+                variables[var_pattern[1:]] = vars_for_fp
+            else:
+                variables.append(vars_for_fp)
 
-            general_function = fn['template']
+            self._v.model.functions.set_modelled_variable_time_period('Current Time Step',vars_for_fp)
 
-            function_names = [v.replace(var_pattern[1:],fn['function_name']) for v in variables]
-            print(function_names[:5])
+        function_names = [v.replace(var_pattern[1:],fn['function_name']) for v in vars_for_fp]
 
-            self._v.model.functions.delete_functions(function_names)
+        for scalar in fn.get('model_parameters',[]):
+            values = self._v.model.catchment.runoff.get_param_values(scalar)
+            # print(scalar,values)
 
-            res = self._v.model.functions.create_functions(function_names,
-                                                           general_function,
-                                                           [v for v in variables])
-            if 'units' in fn:
-                self._v.model.functions.set_options('ResultUnit','UnitLibrary.%s'%fn['units'],functions=function_names)
-            
-            constraint = fn.get('constrain',{})
-            models = self._v.model.catchment.generation.model_table(**constraint)
-            element_names = [(row['Catchment'],row['Functional Unit']) for _,row in models.iterrows() if row['model'] and row['model'].endswith('CLOEModel')]
-            #element_names = self._v.model.catchment.generation.enumerate_names(**constraint)
-            fn_applications = [('$%s_%s_%s'%(fn['function_name'],n[0],n[1])).replace('#','').replace('- ','').replace(' ','_') for n in element_names]
+            if use_format:
+                variables[scalar] = values
+            else:
+                variables.append(values)
 
-            self._v.model.catchment.generation.clear_time_series(fn['param'],**constraint)
-            self._v.model.catchment.generation.apply_function(fn['param'],fn_applications,**constraint)
-            self._v.model.functions.set_time_of_evaluation('DuringFlowPhase',functions=fn_applications)
+            # how are the 
+            # get datasource
+        print(function_names[:5])
 
+        self._v.model.functions.delete_functions(function_names)
+
+        if use_format:
+            keys = list(variables.keys())
+            function_arguments = [{k:variables[k][ix] for k in keys} for ix in range(len(variables[keys[0]]))]
+        else:
+            function_arguments = [vs for vs in zip(*variables)]
+        res = self._v.model.functions.create_functions(function_names,
+                                                       general_function,
+                                                       function_arguments,
+                                                       use_format=use_format)
+        print(res)
+
+        if 'units' in fn:
+            self._v.model.functions.set_options('ResultUnit','UnitLibrary.%s'%fn['units'],functions=function_names)
+        
+        constraint = fn.get('constrain',{})
+        models = self._v.model.catchment.generation.model_table(**constraint)
+        element_names = [(row['Catchment'],row['Functional Unit']) for _,row in models.iterrows() if row['model'] and row['model'].endswith('CLOEModel')]
+        #element_names = self._v.model.catchment.generation.enumerate_names(**constraint)
+        fn_applications = [('$%s_%s_%s'%(fn['function_name'],n[0],n[1])).replace('#','').replace('- ','').replace(' ','_') for n in element_names]
+
+        self._v.model.catchment.generation.clear_time_series(fn['param'],**constraint)
+        self._v.model.catchment.generation.apply_function(fn['param'],fn_applications,**constraint)
+        self._v.model.functions.set_time_of_evaluation('DuringFlowPhase',functions=fn_applications)
 
 class CloeScenario(object):
     def __init__(self,v):
