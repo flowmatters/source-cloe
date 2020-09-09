@@ -3,8 +3,12 @@ import os
 from glob import glob
 import pandas as pd
 import string
+from veneer import read_rescsv
 
-def read_csv(fn):
+def read_csv(fn: str):
+    if fn.endswith('.res.csv'):
+        meta, data = read_rescsv(fn)
+        return data.reset_index()
     try:
         return pd.read_csv(fn,parse_dates=['Date'],dayfirst=True)
     except:
