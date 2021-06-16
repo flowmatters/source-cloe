@@ -13,10 +13,11 @@
       <property name="B51" column="B51" access="property" />
       <property name="B52" column="B52" access="property" />
       <property name="Alpha" column="Alpha" access="property" />
-      <property name="Erodibility" column="Erodibility" access="property" />
-      <property name="Veg" column="Veg" access="property" />
-      <property name="B" column="B" access="property" />
+      <property name="BankErosionRate" column="BankErosionRate" access="property" />
+      <property name="TimingFactor" column="TimingFactor" access="property" />
       <property name="O" column="O" access="property" />
+      <property name="M" column="M" access="property" />
+      <property name="E" column="E" access="property" />
     </join>
   </subclass>
   <subclass abstract="true"

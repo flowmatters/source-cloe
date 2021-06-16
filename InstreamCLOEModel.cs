@@ -36,20 +36,23 @@ namespace Source.CLOE
         public double B52 { get; set; }
 
         #region Streambank Erosion terms
-        [Input]
-        public double Erodibility { get; set; }
+        [Input,CalculationUnits(CommonUnits.KgPerDay)]
+        public double BankErosionRate { get; set; }
 
         [Input]
-        public double Veg { get; set; }
+        public double TimingFactor { get; set; }
 
         [Parameter]
         public double Alpha { get; set; }
 
-        [Parameter, DefaultValue(1.4)]
-        public double B { get; set; }
-
-        [Parameter]
+        [Parameter, DefaultValue(1.4), Description("Operation Factor")]
         public double O { get; set; }
+
+        [Parameter, Description("Management Factor")]
+        public double M { get; set; }
+
+        [Parameter,Description("Streambank Vegetation Factor")]
+        public double E { get; set; }
 
         #endregion
 
@@ -75,7 +78,8 @@ namespace Source.CLOE
         {
             get
             {
-                return O * Alpha * Erodibility * Veg * Math.Pow(DownstreamFlowVolume, B) * Link.Length;
+                return O*Alpha*BankErosionRate*M*E*TimingFactor;
+                //Math.Pow(DownstreamFlowVolume, B) * Link.Length;
             }
         }
 
@@ -87,11 +91,12 @@ namespace Source.CLOE
                 Olink = Olink,
                 B51 = B51,
                 B52 = B52,
-                Erodibility = Erodibility,
-                Veg = Veg,
                 Alpha = Alpha,
                 O = O,
-                B = B
+                M = M,
+                E= E,
+                TimingFactor = TimingFactor,
+                BankErosionRate = BankErosionRate
             };
         }
 
