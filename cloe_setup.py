@@ -6,6 +6,14 @@ import string
 from veneer import read_rescsv
 from veneer.utils import _stringToList
 
+MODEL_NAMES={
+    'areal':'Source.CLOE.ArealCLOEModel',
+    'non_areal':'Source.CLOE.NonArealCLOEModel'
+}
+
+def model_name(nm):
+    return MODEL_NAMES.get(nm,nm)
+
 def _read_csv(fn: str) -> pd.DataFrame:
     if fn.endswith('.res.csv'):
         _, data = read_rescsv(fn)
@@ -52,13 +60,21 @@ class CloeSetup(object):
         self._v = veneer
         self._query_network()
 
+    def apply(self):
+        self.load_inputs()
+        self.create_constituents()
+        self.create_constituent_sources()
+        self.install_models()
+        self.create_data_sources()
+        self.connect_time_series()
+
     def _find_sources(self):
         cfg = self.cfg['sources']
         self.areal_sources = cfg['areal']
         self.non_areal_sources = cfg['non_areal']
         self.conditional_sources = cfg.get('conditional',[])
         cond = list(set(sum([_stringToList(s['constrain'].get('sources',[])) for s in self.conditional_sources],[])))
-        self.sources = self.areal_sources + self.non_areal_sources + cond
+        self.constituent_sources = self.areal_sources + self.non_areal_sources + cond
 
         self.constituents = list(cfg['constituents'].keys()) 
 
@@ -70,6 +86,10 @@ class CloeSetup(object):
         self.fus = list(set(self._v.model.catchment.get_functional_unit_types()))
 
     def load_inputs(self):
+        '''
+        Find all CSV files in the working directory and load,
+        identifying temporal and non-temporal input files.
+        '''
         folder = self.cfg['inputs']['dir']
         files = glob(os.path.join(folder,'*.csv'))
         inputs = {fn.split('\\')[-1].split('.')[0]:read_csv(fn) for fn in files}
@@ -82,16 +102,19 @@ class CloeSetup(object):
             self._v.model.add_constituent(c)
 
     def create_constituent_sources(self):
-        for src in self.sources:
+        for src in self.constituent_sources:
             self._v.model.add_constituent_source(src)
 
     def install_models(self):
-        self._v.model.catchment.generation.set_models('Source.CLOE.ArealCLOEModel',
+        self._v.model.catchment.generation.set_models(model_name('areal'),
                                                       sources=self.areal_sources,
                                                       constituents=self.constituents)
-        self._v.model.catchment.generation.set_models('Source.CLOE.NonArealCLOEModel',
+        self._v.model.catchment.generation.set_models(model_name('non_areal'),
                                                       sources=self.non_areal_sources,
                                                       constituents=self.constituents)
+
+        for cond in self.conditional_sources:
+            self._v.model.catchment.generation.set_models(model_name(cond['model']),**cond['constrain'])
 
         self._v.model.link.constituents.set_models('Source.CLOE.InstreamCLOEModel',constituents=self.constituents)
     
@@ -182,7 +205,7 @@ class CloeSetup(object):
         # constituent_cfg = self.cfg['inputs'].get('columns',{})
         exclusions = self.cfg['sources']['constituents']
         self._v.model.catchment.generation.clear_time_series('InputRate')
-        for src in self.sources:
+        for src in self.constituent_sources:
         #     print(src)
             for con, custom_sources in exclusions.items():
                 if src in custom_sources.get('exclude',[]):
@@ -215,6 +238,9 @@ class CloeSetup(object):
                 self._apply_time_series(data_source,column_template,src,con,None if df is None else df.columns)
         # for each source, constituent, (skip some combinations)
         #   if we have a temporal input rate, assign it...
+        self._connect_global_time_series()
+
+    def _connect_global_time_series(self):
         for ts in self.cfg['inputs'].get('global',[]):
             self._v.model.catchment.generation.assign_time_series(ts['parameter'],ts['column'],ts['source'],**ts['constrain'])
 
