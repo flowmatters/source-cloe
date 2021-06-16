@@ -4,15 +4,23 @@ from glob import glob
 import pandas as pd
 import string
 from veneer import read_rescsv
+from veneer.utils import _stringToList
 
-def read_csv(fn: str):
+def _read_csv(fn: str) -> pd.DataFrame:
     if fn.endswith('.res.csv'):
-        meta, data = read_rescsv(fn)
+        _, data = read_rescsv(fn)
         return data.reset_index()
     try:
         return pd.read_csv(fn,parse_dates=['Date'],dayfirst=True)
     except:
         return pd.read_csv(fn,parse_dates=True,dayfirst=True)
+
+def read_csv(fn: str) -> pd.DataFrame:
+    try:
+        return _read_csv(fn)
+    except:
+        print(f'Error reading CSV data from {fn}')
+        raise
 
 def first_match(values,options):
     for o in options:
@@ -39,14 +47,20 @@ class CloeSetup(object):
     def __init__(self,fn,veneer):
         self.cfg = json.load(open(fn,'r'))
 
-        self.areal_sources = self.cfg['sources']['areal']
-        self.non_areal_sources = self.cfg['sources']['non_areal']
-        self.sources = self.areal_sources + self.non_areal_sources
-        self.constituents = list(self.cfg['sources']['constituents'].keys()) 
+        self._find_sources()
        
         self._v = veneer
         self._query_network()
-        self.load_inputs()
+
+    def _find_sources(self):
+        cfg = self.cfg['sources']
+        self.areal_sources = cfg['areal']
+        self.non_areal_sources = cfg['non_areal']
+        self.conditional_sources = cfg.get('conditional',[])
+        cond = list(set(sum([_stringToList(s['constrain'].get('sources',[])) for s in self.conditional_sources],[])))
+        self.sources = self.areal_sources + self.non_areal_sources + cond
+
+        self.constituents = list(cfg['constituents'].keys()) 
 
     def _query_network(self):
         network = self._v.network()
