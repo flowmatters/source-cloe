@@ -3,6 +3,8 @@ import os
 from glob import glob
 import pandas as pd
 import string
+
+from pandas.core.algorithms import isin
 from veneer import read_rescsv
 from veneer.utils import _stringToList
 
@@ -16,7 +18,7 @@ def model_name(nm):
 
 def _read_csv(fn: str) -> pd.DataFrame:
     if fn.endswith('.res.csv'):
-        _, data = read_rescsv(fn)
+        _, data = read_rescsv(fn,['Name'])
         return data.reset_index()
     try:
         return pd.read_csv(fn,parse_dates=['Date'],dayfirst=True)
@@ -65,8 +67,11 @@ class CloeSetup(object):
         self.create_constituents()
         self.create_constituent_sources()
         self.install_models()
+        self.apply_parameters()
+
         self.create_data_sources()
         self.connect_time_series()
+        self.setup_functions()
 
     def _find_sources(self):
         cfg = self.cfg['sources']
@@ -92,7 +97,10 @@ class CloeSetup(object):
         '''
         folder = self.cfg['inputs']['dir']
         files = glob(os.path.join(folder,'*.csv'))
-        inputs = {fn.split('\\')[-1].split('.')[0]:read_csv(fn) for fn in files}
+        file_lookup = {fn.split('\\')[-1].split('.')[0]:fn for fn in files}
+        if self.cfg['inputs']['ignore']:
+            file_lookup = {k:fn for k,fn in file_lookup.items() if k not in self.cfg['inputs']['ignore']}
+        inputs = {k:read_csv(fn) for k,fn in file_lookup.items()}
         self.inputs = {k:transform_df(df,k) for k,df in inputs.items()}
         self.temporal_inputs = [k for k,df in self.inputs.items() if 'Date' in df.columns]
         self.non_temporal_inputs = [k for k,df in self.inputs.items() if 'Date' not in df.columns]
@@ -138,7 +146,7 @@ class CloeSetup(object):
                 print("Don't need to pivot. Load as is")
                 df = df.set_index('Date')
                 self._v.create_data_source(input_fn,df,units='kg')
-                self.data_source_lookup[input_fn] = (input_fn,column_formats[input_fn],df)
+                self.data_source_lookup[input_fn] = (input_fn,column_formats.get(input_fn,None),df)
                 continue
 
             print('Need to pivot')
@@ -152,7 +160,8 @@ class CloeSetup(object):
                 self._v.create_data_source(data_source_name,pivot,units='kg')
                 self.data_source_lookup[(input_fn,constituent)] = (data_source_name,'SC#${scix}:${fu}',pivot)
         # - do we need to scale by ha->m^2 -- NO. Model is in terms of per hectare...
-
+    
+    def map_model_data_sources(self):
         data_sources = self._v.data_sources()
         self.existing_data_sources = {ds['Name']:[i['Name'] for i in ds['Items'][0]['Details']] for ds in data_sources}
 
@@ -164,19 +173,24 @@ class CloeSetup(object):
                            columns,
                            fus=None,
                            param='InputRate'):
+        if fus is not None:
+            fus = _stringToList(fus)
         skipped = 0
         actioned = 0
         if columns is None:
             columns = self.existing_data_sources.get(data_source,None)
         if columns is None:
             print("WARNING. We don't know anything about the columns in {data_source}".format(data_source=data_source))
+        skipped_columns = set()
         for catchment in self.catchment_names:
             for fu in (fus or self.fus):
                 scix = catchment.split('#')[1]
                 column = string.Template(template).substitute(fu=fu,sc=catchment,scix=scix,con=constituent)
                 # msg = '%s:%s:%s:%s ==> %s/%s'%(catchment,fu,constituent_source,constituent,data_source,column)
                 if column not in columns:
-                    print('NO DATA: %s/%s'%(data_source,column))
+                    if column not in skipped_columns:
+                        print('NO DATA: %s/%s'%(data_source,column))
+                    skipped_columns = skipped_columns.union({column})
                     skipped += 1
                     continue
                 try:
@@ -202,40 +216,55 @@ class CloeSetup(object):
     #         break
 
     def connect_time_series(self):
+        self.map_model_data_sources()
         # constituent_cfg = self.cfg['inputs'].get('columns',{})
         exclusions = self.cfg['sources']['constituents']
+        global_sources = self.cfg['inputs']['source']
+        constrained_sources = self.cfg['inputs'].get('existing',None)
+        if constrained_sources is None:
+            constrained_sources = self.cfg['inputs'].get('constrained',None)
+
         self._v.model.catchment.generation.clear_time_series('InputRate')
-        for src in self.constituent_sources:
+        for con_src in self.constituent_sources:
         #     print(src)
-            for con, custom_sources in exclusions.items():
-                if src in custom_sources.get('exclude',[]):
-                    print('SKIPPING %s:%s - exclude list'%(src,con))
-                    continue
-                if not src in self.cfg['inputs']['source']:
-                    existing_sources = self.cfg['inputs'].get('existing',{})
-                    if src in existing_sources:
-                        for config in existing_sources[src]:
-                            constrain = config.get('constrain',{})
-                            self._apply_time_series(config['datasource'],
-                                                    config['column_format'],
-                                                    src,
-                                                    constrain.get('constituents',self.constituents),
-                                                    None,
-                                                    constrain.get('fus',None),
-                                                    param=config.get('param','InputRate'))
-                    else:
-                        print('SKIPPING %s:%s - no inputs'%(src,con))
+            for con in self.constituents:
+            # for con, custom_sources in exclusions.items():
+                if con_src in exclusions.get(con,{}).get('exclude',[]):
+                    print('SKIPPING %s:%s - exclude list'%(con_src,con))
                     continue
 
-                fn = self.cfg['inputs']['source'][src]
-                print('\n%s:%s'%(src,con),end='')
-                data_source, column_template, df = self.data_source_lookup.get(fn,self.data_source_lookup.get((fn,con),(None,None,None)))
-                if data_source is None:
-                    data_source = fn
-                if column_template is None:
-                    column_template = self.cfg['inputs']['column_formats'][fn]
-                print(' - %s --> %s'%(data_source,column_template))
-                self._apply_time_series(data_source,column_template,src,con,None if df is None else df.columns)
+                if con_src in global_sources:
+                    # Default treatment. Apply data source to all FUs/Constituents for which we have data
+                    # CURRENTLY NOT USED FOR Tully
+                    data_fn = self.cfg['inputs']['source'][con_src]
+                    print('\n%s:%s'%(con_src,con),end='')
+                    data_source, column_template, df = self.data_source_lookup.get(data_fn,self.data_source_lookup.get((data_fn,con),(None,None,None)))
+                    if data_source is None:
+                        data_source = data_fn
+                    if column_template is None:
+                        column_template = self.cfg['inputs']['column_formats'][data_fn]
+                    print(' - %s --> %s'%(data_source,column_template))
+                    self._apply_time_series(data_source,column_template,con_src,con,None if df is None else df.columns)
+                else:
+                    # Apply in specific circumstances
+                    constrained_config = constrained_sources.get(con_src,[])
+                    if not len(constrained_config):
+                        print('SKIPPING %s:%s - no inputs'%(con_src,con))
+                        continue
+
+                    if isinstance(constrained_config,dict):
+                        constrained_config = [constrained_config]
+
+                    for config in constrained_config:
+                        constrain = config.get('constrain',{})
+                        self._apply_time_series(config['datasource'],
+                                                config['column_format'],
+                                                con_src,
+                                                constrain.get('constituents',self.constituents),
+                                                None,
+                                                constrain.get('fus',None),
+                                                param=config.get('param','InputRate'))
+                        
         # for each source, constituent, (skip some combinations)
         #   if we have a temporal input rate, assign it...
         self._connect_global_time_series()
@@ -244,33 +273,45 @@ class CloeSetup(object):
         for ts in self.cfg['inputs'].get('global',[]):
             self._v.model.catchment.generation.assign_time_series(ts['parameter'],ts['column'],ts['source'],**ts['constrain'])
 
+    def extract_spatial_parameters(self,sp):
+        result = []
+        data = self.inputs[sp['input']]
+        for _,row in data.iterrows():
+            matches = {k:row[v] for k,v in sp['match'].items()}
+            matches.update(sp.get('constrain',{}))
+            val = row[sp['value']]
+            result.append((val,matches))
+        return result
+
     def apply_parameters(self):
         cfg = self.cfg['parameters']
 
         target = self._v.model.catchment.generation
+        print('Setting fixed scalar parameters')
         for p,val in cfg.get('fixed',{}).items():
             target.set_param_values(p,val)
+
+        print('Configure loss parameters')
         losses = cfg['losses']
         for p,frac in losses.get('fixed',{}).items():
             target.set_param_values('O%s'%p,0.0)
             target.set_param_values('D%s'%p,frac)
-        
+
         for p in losses.get('dynamic',[]):
             target.set_param_values('O%s'%p,1.0)
             target.set_param_values('D%s'%p,0.0)
 
+        print('Setting constrained scalar parameters')
         for scalar in cfg.get('scalar',[]):
             matches = scalar.get('match',{})
             for param,val in scalar.get('parameters',{}).items():
                 target.set_param_values(param,val,**matches)
 
+        print('Setting spatial parameters')
         spatial = cfg.get('spatial',[])
         for sp in spatial:
-            data = self.inputs[sp['input']]
-            for _,row in data.iterrows():
-                matches = {k:row[v] for k,v in sp['match'].items()}
-                matches.update(sp.get('constrain',{}))
-                val = row[sp['value']]
+            actions = self.extract_spatial_parameters(sp)
+            for val,matches in actions:
                 target.set_param_values(sp['param'],val,**matches)
 
     def setup_functions(self):
@@ -280,6 +321,15 @@ class CloeSetup(object):
     
     def _setup_function(self,fn):
         general_function = fn['template']
+        constraint = fn.get('constrain',{})
+        if 'fus' in constraint:
+            runoff_constraint = {
+                'fus':constraint['fus']
+            }
+        else:
+            runoff_constraint = {}
+
+        print(f'Configuring runoff function {fn["function_name"]} for {fn["param"]}')
         use_format = '{' in general_function
 
         function_parameters = fn.get('model_variables',[fn.get('runoff_variable',None)])
@@ -292,9 +342,15 @@ class CloeSetup(object):
             variables = []
 
         for fp in function_parameters:
-            self._v.model.catchment.runoff.create_modelled_variable(fp)
-
             var_pattern = '$'+fp.replace(' ','_').replace('-','_')
+            all_variables = self._v.variables()
+            vars_to_delete = [v for v in all_variables._select(['FullName']) if v.startswith(var_pattern)]
+            if len(vars_to_delete):
+                print(f'Deleting existing variables with prefix: {var_pattern}')
+                self._v.model.functions.delete_variables(vars_to_delete)
+
+            self._v.model.catchment.runoff.create_modelled_variable(fp,**runoff_constraint)
+
             all_variables = self._v.variables()
             vars_for_fp = [v for v in all_variables._select(['FullName']) if v.startswith(var_pattern)]
             # print(fp,vars_for_fp[:5])
@@ -309,7 +365,7 @@ class CloeSetup(object):
         function_names = [v.replace(var_pattern[1:],fn['function_name']) for v in vars_for_fp]
 
         for scalar in fn.get('model_parameters',[]):
-            values = self._v.model.catchment.runoff.get_param_values(scalar)
+            values = self._v.model.catchment.runoff.get_param_values(scalar,**runoff_constraint)
             # print(scalar,values)
 
             if use_format:
@@ -317,9 +373,31 @@ class CloeSetup(object):
             else:
                 variables.append(values)
 
-            # how are the 
-            # get datasource
-        print(function_names[:5])
+        for data_parameter in fn.get('data_variables',[]):
+            assert use_format
+            actions = self.extract_spatial_parameters(data_parameter)
+            values = []
+            for sc, fu in self._v.model.catchment.runoff.enumerate_names(**runoff_constraint):
+                scix = int(sc.split('#')[-1])
+                val_found = data_parameter.get('default_value',-1)
+                for val,matches in actions:
+                    if 'catchments' in matches:
+                        if matches['catchments'] != sc:
+                            continue
+                    if 'fus' in matches:
+                        if matches['fus'] != fu:
+                            continue
+                    val_found = val
+                    break
+                values.append(val_found)
+            if len(values)!=len(function_names):
+                print(f'Expected length of values ({len(values)}) to match number of functions ({len(function_names)})')
+                assert len(values)==len(function_names)
+            # Now, align with parameters... catchment, fu
+            variables[data_parameter['label']] = values            
+            # need the names...
+
+        # print(function_names[:5])
 
         self._v.model.functions.delete_functions(function_names)
 
@@ -332,12 +410,11 @@ class CloeSetup(object):
                                                        general_function,
                                                        function_arguments,
                                                        use_format=use_format)
-        print(res)
+        # print(res)
 
         if 'units' in fn:
             self._v.model.functions.set_options('ResultUnit','UnitLibrary.%s'%fn['units'],functions=function_names)
         
-        constraint = fn.get('constrain',{})
         models = self._v.model.catchment.generation.model_table(**constraint)
         element_names = [(row['Catchment'],row['Functional Unit']) for _,row in models.iterrows() if row['model'] and row['model'].endswith('CLOEModel')]
         #element_names = self._v.model.catchment.generation.enumerate_names(**constraint)
