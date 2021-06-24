@@ -292,7 +292,7 @@ class CloeSetup(object):
             target.set_param_values(p,val)
 
         print('Configure loss parameters')
-        losses = cfg['losses']
+        losses = cfg.get('losses',{})
         for p,frac in losses.get('fixed',{}).items():
             target.set_param_values('O%s'%p,0.0)
             target.set_param_values('D%s'%p,frac)
